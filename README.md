@@ -12,12 +12,12 @@ A Go package for forwarding logs to UDP endpoints with structured logging using 
 ## Usage
 
 ```go
-import "gitlab.salsa.digital/dev-salsa/go-log-forwarder"
+import "projects.govcms.gov.au/dev-salsa/go-log-forwarder"
 
 func main() {
     flag.Parse()
     logger.Initialize()
-    
+
     slog.Info("Application started")
 }
 ```
@@ -29,4 +29,4 @@ func main() {
 - `--log.port`: UDP port (default: 5140)
 - `--log.addSource`: Add source information to logs (default: true)
 - `--log.channel`: Channel name (default: "LagoonLogs")
-- `--log.fields.applicationName`: Application name for log identification 
+- `--log.fields.applicationName`: Application name for log identification

@@ -1,3 +1,3 @@
-module gitlab.salsa.digital/dev-salsa/go-log-forwarder
+module projects.govcms.gov.au/dev-salsa/go-log-forwarder
 
-go 1.24.0 
+go 1.24.0
