@@ -1,3 +1,3 @@
-module projects.govcms.gov.au/dev-salsa/go-log-forwarder
+module github.com/salsadigitalorg/go-lagoon-log-forwarder
 
 go 1.24.0

@@ -1,0 +1,238 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.out ./...
+
+    - name: Run benchmarks
+      run: go test -bench=. -benchmem ./...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+    - name: Go vet
+      run: go vet ./...
+
+    - name: Go fmt check
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "The following files are not formatted correctly:"
+          gofmt -s -l .
+          exit 1
+        fi
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Run Gosec Security Scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: '-no-fail -fmt sarif -out results.sarif ./...'
+
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: results.sarif
+
+  release:
+    name: Create Release
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Get latest tag
+      id: get_latest_tag
+      run: |
+        latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        echo "latest_tag=$latest_tag" >> $GITHUB_OUTPUT
+        echo "Latest tag: $latest_tag"
+
+    - name: Determine version bump
+      id: version_bump
+      run: |
+        # Get commit messages since last tag
+        latest_tag="${{ steps.get_latest_tag.outputs.latest_tag }}"
+        
+        # If no previous tag, start with v0.1.0
+        if [ "$latest_tag" = "v0.0.0" ]; then
+          new_version="v0.1.0"
+        else
+          # Get commits since last tag
+          commits=$(git log ${latest_tag}..HEAD --oneline --pretty=format:"%s")
+          
+          # Extract current version numbers
+          current_version=${latest_tag#v}
+          IFS='.' read -r major minor patch <<< "$current_version"
+          
+          # Determine bump type based on commit messages
+          if echo "$commits" | grep -qi "BREAKING\|breaking change\|!:"; then
+            # Major version bump for breaking changes
+            major=$((major + 1))
+            minor=0
+            patch=0
+          elif echo "$commits" | grep -qi "feat\|feature"; then
+            # Minor version bump for new features
+            minor=$((minor + 1))
+            patch=0
+          else
+            # Patch version bump for fixes and other changes
+            patch=$((patch + 1))
+          fi
+          
+          new_version="v${major}.${minor}.${patch}"
+        fi
+        
+        echo "new_version=$new_version" >> $GITHUB_OUTPUT
+        echo "New version: $new_version"
+
+    - name: Check if version exists
+      id: check_version
+      run: |
+        new_version="${{ steps.version_bump.outputs.new_version }}"
+        if git tag -l | grep -q "^${new_version}$"; then
+          echo "version_exists=true" >> $GITHUB_OUTPUT
+          echo "Version $new_version already exists"
+        else
+          echo "version_exists=false" >> $GITHUB_OUTPUT
+          echo "Version $new_version is new"
+        fi
+
+    - name: Build binary
+      if: steps.check_version.outputs.version_exists == 'false'
+      run: |
+        mkdir -p dist
+        
+        # Build for multiple platforms
+        GOOS=linux GOARCH=amd64 go build -o dist/go-log-forwarder-linux-amd64 ./...
+        GOOS=linux GOARCH=arm64 go build -o dist/go-log-forwarder-linux-arm64 ./...
+        GOOS=darwin GOARCH=amd64 go build -o dist/go-log-forwarder-darwin-amd64 ./...
+        GOOS=darwin GOARCH=arm64 go build -o dist/go-log-forwarder-darwin-arm64 ./...
+        GOOS=windows GOARCH=amd64 go build -o dist/go-log-forwarder-windows-amd64.exe ./...
+
+    - name: Generate changelog
+      if: steps.check_version.outputs.version_exists == 'false'
+      id: changelog
+      run: |
+        latest_tag="${{ steps.get_latest_tag.outputs.latest_tag }}"
+        new_version="${{ steps.version_bump.outputs.new_version }}"
+        
+        echo "# Changelog for $new_version" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        
+        if [ "$latest_tag" != "v0.0.0" ]; then
+          echo "## Changes since $latest_tag" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          
+          # Get commits since last tag and format them
+          git log ${latest_tag}..HEAD --oneline --pretty=format:"- %s (%h)" >> CHANGELOG.md
+        else
+          echo "## Initial Release" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "- Initial release of go-log-forwarder" >> CHANGELOG.md
+        fi
+        
+        echo "" >> CHANGELOG.md
+        echo "## Installation" >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo '```bash' >> CHANGELOG.md
+        echo 'go get github.com/salsadigitalorg/go-lagoon-log-forwarder@'$new_version >> CHANGELOG.md
+        echo '```' >> CHANGELOG.md
+
+    - name: Create Release
+      if: steps.check_version.outputs.version_exists == 'false'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version_bump.outputs.new_version }}
+        release_name: Release ${{ steps.version_bump.outputs.new_version }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Assets
+      if: steps.check_version.outputs.version_exists == 'false'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/go-log-forwarder-linux-amd64
+        asset_name: go-log-forwarder-linux-amd64
+        asset_content_type: application/octet-stream
+
+  notify:
+    name: Notify Success
+    needs: [test, security, release]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Notify on success
+      if: needs.test.result == 'success' && needs.security.result == 'success'
+      run: |
+        echo "✅ All checks passed!"
+        if [ "${{ needs.release.result }}" = "success" ]; then
+          echo "🚀 New release created successfully!"
+        fi
+
+    - name: Notify on failure
+      if: needs.test.result == 'failure' || needs.security.result == 'failure'
+      run: |
+        echo "❌ Some checks failed!"
+        exit 1 
