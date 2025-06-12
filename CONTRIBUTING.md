@@ -88,7 +88,7 @@ BREAKING CHANGE: Config field names have changed from snake_case to camelCase
 
 ```bash
 # Clone the repository
-git clone https://github.com/salsadigitalorg/go-lagoon-log-forwarder.git
+git clone https://github.com/salsadigitalauorg/go-lagoon-log-forwarder.git
 cd go-lagoon-log-forwarder
 
 # Install dependencies

@@ -191,7 +191,7 @@ jobs:
         echo "## Installation" >> CHANGELOG.md
         echo "" >> CHANGELOG.md
         echo '```bash' >> CHANGELOG.md
-        echo 'go get github.com/salsadigitalorg/go-lagoon-log-forwarder@'$new_version >> CHANGELOG.md
+        echo 'go get github.com/salsadigitalauorg/go-lagoon-log-forwarder@'$new_version >> CHANGELOG.md
         echo '```' >> CHANGELOG.md
 
     - name: Create Release

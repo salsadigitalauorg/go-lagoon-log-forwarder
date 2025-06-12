@@ -1,10 +1,10 @@
 # Go Lagoon Log Forwarder
 
-[![CI](https://github.com/salsadigitalorg/go-lagoon-log-forwarder/actions/workflows/pr.yml/badge.svg)](https://github.com/salsadigitalorg/go-lagoon-log-forwarder/actions/workflows/pr.yml)
-[![Release](https://github.com/salsadigitalorg/go-lagoon-log-forwarder/actions/workflows/release.yml/badge.svg)](https://github.com/salsadigitalorg/go-lagoon-log-forwarder/actions/workflows/release.yml)
-[![codecov](https://codecov.io/gh/salsadigitalorg/go-lagoon-log-forwarder/branch/main/graph/badge.svg)](https://codecov.io/gh/salsadigitalorg/go-lagoon-log-forwarder)
-[![Go Report Card](https://goreportcard.com/badge/github.com/salsadigitalorg/go-lagoon-log-forwarder)](https://goreportcard.com/report/github.com/salsadigitalorg/go-lagoon-log-forwarder)
-[![Go Reference](https://pkg.go.dev/badge/github.com/salsadigitalorg/go-lagoon-log-forwarder.svg)](https://pkg.go.dev/github.com/salsadigitalorg/go-lagoon-log-forwarder)
+[![CI](https://github.com/salsadigitalauorg/go-lagoon-log-forwarder/actions/workflows/pr.yml/badge.svg)](https://github.com/salsadigitalauorg/go-lagoon-log-forwarder/actions/workflows/pr.yml)
+[![Release](https://github.com/salsadigitalauorg/go-lagoon-log-forwarder/actions/workflows/release.yml/badge.svg)](https://github.com/salsadigitalauorg/go-lagoon-log-forwarder/actions/workflows/release.yml)
+[![codecov](https://codecov.io/gh/salsadigitalauorg/go-lagoon-log-forwarder/branch/main/graph/badge.svg)](https://codecov.io/gh/salsadigitalauorg/go-lagoon-log-forwarder)
+[![Go Report Card](https://goreportcard.com/badge/github.com/salsadigitalauorg/go-lagoon-log-forwarder)](https://goreportcard.com/report/github.com/salsadigitalauorg/go-lagoon-log-forwarder)
+[![Go Reference](https://pkg.go.dev/badge/github.com/salsadigitalauorg/go-lagoon-log-forwarder.svg)](https://pkg.go.dev/github.com/salsadigitalauorg/go-lagoon-log-forwarder)
 
 A high-performance Go library for forwarding structured logs to UDP endpoints, designed for Lagoon/Kubernetes environments with built-in support for ELK stack integration.
 
@@ -21,7 +21,7 @@ A high-performance Go library for forwarding structured logs to UDP endpoints, d
 ## 📦 Installation
 
 ```bash
-go get github.com/salsadigitalorg/go-lagoon-log-forwarder@latest
+go get github.com/salsadigitalauorg/go-lagoon-log-forwarder@latest
 ```
 
 ## 🚀 Quick Start
@@ -34,7 +34,7 @@ package main
 import (
     "log/slog"
     
-    "github.com/salsadigitalorg/go-lagoon-log-forwarder"
+    "github.com/salsadigitalauorg/go-lagoon-log-forwarder"
 )
 
 func main() {
@@ -160,7 +160,7 @@ go test -bench=. -benchmem ./...
 ### Local Setup
 
 ```bash
-git clone https://github.com/salsadigitalorg/go-lagoon-log-forwarder.git
+git clone https://github.com/salsadigitalauorg/go-lagoon-log-forwarder.git
 cd go-lagoon-log-forwarder
 
 # Install dependencies
@@ -238,9 +238,9 @@ Releases are automated based on conventional commit messages.
 
 ## 📞 Support
 
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/salsadigitalorg/go-lagoon-log-forwarder/issues)
-- **💡 Feature Requests**: [GitHub Issues](https://github.com/salsadigitalorg/go-lagoon-log-forwarder/issues)
-- **❓ Questions**: [GitHub Discussions](https://github.com/salsadigitalorg/go-lagoon-log-forwarder/discussions)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/salsadigitalauorg/go-lagoon-log-forwarder/issues)
+- **💡 Feature Requests**: [GitHub Issues](https://github.com/salsadigitalauorg/go-lagoon-log-forwarder/issues)
+- **❓ Questions**: [GitHub Discussions](https://github.com/salsadigitalauorg/go-lagoon-log-forwarder/discussions)
 
 ---
 
