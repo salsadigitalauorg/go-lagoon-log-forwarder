@@ -1,42 +1,45 @@
 package logger
 
 import (
-	"flag"
+	"errors"
 	"log/slog"
-	"os"
-	"sync"
 )
 
-var (
-	addSource       bool
-	applicationName string
-	hostname        string
-	logChannel      string
-	logHost         string
-	logPort         int
-	logType         string // should match namespace to create index 'application-logs-{logType}'
-	messageVersion  int
-	once            sync.Once
-)
-
-func init() {
-
-	hostname, _ = os.Hostname()
-
-	messageVersion = 3
-
-	// Required
-	flag.StringVar(&logType, "log.fields.type", "", "Log Type (must match existing k8s namespace)")
-	flag.StringVar(&logHost, "log.host", "", "UDP host")
-	// Optionals
-	flag.BoolVar(&addSource, "log.addSource", true, "Add source to logs")
-	flag.StringVar(&logChannel, "log.channel", "LagoonLogs", "Channel name")
-	flag.StringVar(&applicationName, "log.fields.applicationName", "", "Application name")
-	flag.IntVar(&logPort, "log.port", 5140, "UDP port")
-
+type Config struct {
+	AddSource       bool
+	ApplicationName string
+	LogChannel      string
+	LogHost         string
+	LogPort         int
+	LogType         string
+	MessageVersion  int
 }
 
-func validate() {
+// NewConfig returns a Config struct with default values
+func NewConfig() Config {
+	return Config{
+		AddSource:       true,
+		ApplicationName: "",
+		LogChannel:      "LagoonLogs",
+		LogHost:         "", // Will default to localhost in validation
+		LogPort:         5140,
+		LogType:         "", // Required - must be set by user
+		MessageVersion:  1,
+	}
+}
+
+func config(cfg Config) error {
+	addSource = cfg.AddSource
+	applicationName = cfg.ApplicationName
+	logChannel = cfg.LogChannel
+	logHost = cfg.LogHost
+	logPort = cfg.LogPort
+	logType = cfg.LogType
+	messageVersion = cfg.MessageVersion
+	return validate()
+}
+
+func validate() error {
 
 	// validate logstashHost
 	if len(logHost) == 0 {
@@ -46,10 +49,8 @@ func validate() {
 	}
 
 	if len(logType) == 0 {
-		slog.Error(
-			"log.fields.type is required",
-		)
-		os.Exit(1)
+		return errors.New("logType is required")
 	}
 
+	return nil
 }

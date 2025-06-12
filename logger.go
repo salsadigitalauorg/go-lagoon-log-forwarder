@@ -6,13 +6,31 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"sync"
+)
+
+var (
+	addSource       bool
+	applicationName string
+	hostname        string
+	logChannel      string
+	logHost         string
+	logPort         int
+	logType         string // should match namespace to create index 'application-logs-{logType}'
+	messageVersion  int
+	once            sync.Once
 )
 
 // Initialize creates a multiwriter logger (udp and stdout) and sets it as the default
 // slog
-func Initialize() {
+func Initialize(cfg Config) error {
 
-	validate()
+	hostname, _ = os.Hostname()
+	messageVersion = 3
+
+	if err := config(cfg); err != nil {
+		return fmt.Errorf("configuration error: %w", err)
+	}
 
 	once.Do(func() {
 
@@ -37,6 +55,8 @@ func Initialize() {
 
 		slog.SetDefault(slogger)
 	})
+
+	return nil
 }
 
 func defaultAttrs() []any {
