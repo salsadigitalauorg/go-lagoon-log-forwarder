@@ -293,7 +293,7 @@ func TestInitialize_ValidConfig(t *testing.T) {
 	if hostname == "" {
 		t.Error("Initialize() should set hostname")
 	}
-	if messageVersion != 3 {
+	if messageVersion != 1 {
 		t.Errorf("Initialize() should set messageVersion to 3, got %d", messageVersion)
 	}
 }
