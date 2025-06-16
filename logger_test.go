@@ -163,13 +163,13 @@ func TestConnect_InvalidAddress(t *testing.T) {
 	conn, err := connect()
 	if err == nil {
 		t.Error("connect() should return error for invalid address")
-		if conn != nil {
-			conn.Close()
-		}
 	}
 	if conn != nil {
 		t.Error("connect() should return nil connection for invalid address")
-		conn.Close()
+		err = conn.Close()
+		if err != nil {
+			t.Errorf("connect() failed to close connection: %v", err)
+		}
 	}
 }
 
@@ -210,7 +210,10 @@ func TestConnect_ValidAddress(t *testing.T) {
 	}
 
 	// Clean up
-	conn.Close()
+	err = conn.Close()
+	if err != nil {
+		t.Errorf("connect() failed to close connection: %v", err)
+	}
 }
 
 func TestConnect_EmptyHost(t *testing.T) {
@@ -232,7 +235,10 @@ func TestConnect_EmptyHost(t *testing.T) {
 	// This should likely fail since empty host is invalid
 	if err == nil && conn != nil {
 		// If it somehow succeeds, clean up
-		conn.Close()
+		err = conn.Close()
+		if err != nil {
+			t.Errorf("connect() failed to close connection: %v", err)
+		}
 		t.Log("connect() succeeded with empty host (unexpected but not necessarily wrong)")
 	} else {
 		// This is the expected case
@@ -258,13 +264,12 @@ func TestInitialize_ConfigError(t *testing.T) {
 
 func TestInitialize_ValidConfig(t *testing.T) {
 	// Save original values
-	originalOnce := once
 	originalHostname := hostname
 	originalMessageVersion := messageVersion
 
 	// Defer restoration
 	defer func() {
-		once = originalOnce
+		once = sync.Once{}
 		hostname = originalHostname
 		messageVersion = originalMessageVersion
 	}()
@@ -299,12 +304,10 @@ func TestInitialize_ValidConfig(t *testing.T) {
 }
 
 func TestInitialize_OnceSemantics(t *testing.T) {
-	// Save original values
-	originalOnce := once
-
 	// Defer restoration
 	defer func() {
-		once = originalOnce
+		// Create a new sync.Once instead of copying
+		once = sync.Once{}
 	}()
 
 	// Reset once for this test
