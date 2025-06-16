@@ -68,9 +68,9 @@ jobs:
         check-latest: true
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v4
+      uses: golangci/golangci-lint-action@v6
       with:
-        version: latest
+        version: v2.1.6
         args: --timeout=5m
 
   security:
@@ -117,9 +117,9 @@ jobs:
     - name: Check module tidiness
       run: |
         go mod tidy
-        if ! git diff --quiet go.mod go.sum; then
+        if ! git diff --quiet go.mod $(test -f go.sum && echo go.sum); then
           echo "go.mod or go.sum is not tidy"
-          git diff go.mod go.sum
+          git diff go.mod $(test -f go.sum && echo go.sum)
           exit 1
         fi
 
