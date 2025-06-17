@@ -33,19 +33,18 @@ func Initialize(cfg Config) error {
 	}
 
 	once.Do(func() {
+		var writer io.Writer = os.Stdout
 
 		udpConnection, err := connect()
 		if err != nil {
-			fmt.Fprintf(os.Stdout, "Failed to connect to UDP endpoint: %s", err)
-			os.Exit(1)
+			slog.Warn("Failed to connect to UDP endpoint, logging to stdout only", "error", err)
+		} else {
+			writer = io.MultiWriter(os.Stdout, udpConnection)
 		}
 
 		slogger := slog.New(
 			slog.NewJSONHandler(
-				io.MultiWriter(
-					os.Stdout,
-					udpConnection,
-				),
+				writer,
 				&slog.HandlerOptions{
 					AddSource:   addSource,
 					Level:       slog.LevelDebug,

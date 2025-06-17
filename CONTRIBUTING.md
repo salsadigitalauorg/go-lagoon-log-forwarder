@@ -83,6 +83,7 @@ BREAKING CHANGE: Config field names have changed from snake_case to camelCase
 
 - Go 1.21 or later
 - Git
+- Make (for using the Makefile commands)
 
 ### Setup
 
@@ -91,17 +92,108 @@ BREAKING CHANGE: Config field names have changed from snake_case to camelCase
 git clone https://github.com/salsadigitalauorg/go-lagoon-log-forwarder.git
 cd go-lagoon-log-forwarder
 
-# Install dependencies
-go mod download
+# Install dependencies and development tools
+make deps
+make install-tools
 
-# Run tests
-go test -v ./...
-
-# Run linting (optional, requires golangci-lint)
-golangci-lint run
+# Run quick development check
+make quick
 ```
 
-### Running Tests
+### Development with Makefile
+
+We provide a comprehensive Makefile for all development tasks. To see all available commands:
+
+```bash
+make help
+```
+
+#### Quick Start Commands
+
+```bash
+make test           # Run all tests
+make test-cover     # Run tests with coverage
+make bench          # Run benchmarks
+make lint           # Run linting
+make ci             # Run full CI pipeline locally
+```
+
+#### Testing Commands
+
+| Command | Description |
+|---------|-------------|
+| `make test` | Run all tests |
+| `make test-race` | Run tests with race detection |
+| `make test-short` | Run tests in short mode (faster) |
+| `make test-cover` | Run tests with coverage report |
+| `make test-cover-html` | Generate HTML coverage report |
+| `make bench` | Run benchmarks |
+| `make bench-verbose` | Run benchmarks with verbose output |
+| `make bench-compare` | Run benchmarks 5 times for comparison |
+
+#### Code Quality Commands
+
+| Command | Description |
+|---------|-------------|
+| `make lint` | Run golangci-lint |
+| `make lint-fix` | Run linting with auto-fix |
+| `make fmt` | Format code with gofmt + goimports |
+| `make fmt-check` | Check if code is formatted correctly |
+| `make vet` | Run go vet |
+| `make security` | Run security scan with gosec |
+
+#### Project Management
+
+| Command | Description |
+|---------|-------------|
+| `make build` | Build the project |
+| `make clean` | Clean build artifacts |
+| `make deps` | Download and tidy dependencies |
+| `make deps-update` | Update all dependencies |
+| `make deps-verify` | Verify dependencies |
+| `make install-tools` | Install development tools |
+
+#### Workflow Commands
+
+| Command | Description |
+|---------|-------------|
+| `make all` | Run fmt, vet, lint, and test |
+| `make ci` | Run full CI pipeline locally |
+| `make quick` | Quick development check (format, vet, test-short) |
+
+#### Information Commands
+
+| Command | Description |
+|---------|-------------|
+| `make version` | Show Go version and module info |
+| `make info` | Show project information |
+
+### Typical Development Workflow
+
+```bash
+# 1. Start development
+make quick              # Quick check (format, vet, short tests)
+
+# 2. Write code and tests
+
+# 3. Run comprehensive tests
+make test-cover         # Run tests with coverage
+make bench             # Run benchmarks
+
+# 4. Check code quality
+make lint              # Run all linters
+make security          # Security scan
+
+# 5. Before committing
+make ci                # Run full CI pipeline locally
+
+# 6. Generate coverage report (optional)
+make test-cover-html   # Open coverage.html in browser
+```
+
+### Manual Commands (without Makefile)
+
+If you prefer not to use the Makefile:
 
 ```bash
 # Run all tests
@@ -115,6 +207,16 @@ go test -bench=. -benchmem ./...
 
 # View coverage report
 go tool cover -html=coverage.out
+
+# Format code
+gofmt -s -w .
+goimports -w .
+
+# Run linting (requires golangci-lint)
+golangci-lint run
+
+# Run security scan (requires gosec)
+gosec ./...
 ```
 
 ## Code Quality Standards
