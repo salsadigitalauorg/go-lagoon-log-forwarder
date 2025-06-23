@@ -21,6 +21,24 @@ var (
 	once            sync.Once
 )
 
+// synchronizedUDPWriter ensures UDP writes happen serially
+type synchronizedUDPWriter struct {
+	conn io.WriteCloser
+	mu   sync.Mutex
+}
+
+func (w *synchronizedUDPWriter) Write(p []byte) (n int, err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.conn.Write(p)
+}
+
+func (w *synchronizedUDPWriter) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.conn.Close()
+}
+
 // Initialize creates a multiwriter logger (udp and stdout) and sets it as the default
 // slog
 func Initialize(cfg Config) error {
@@ -39,7 +57,9 @@ func Initialize(cfg Config) error {
 		if err != nil {
 			slog.Warn("Failed to connect to UDP endpoint, logging to stdout only", "error", err)
 		} else {
-			writer = io.MultiWriter(os.Stdout, udpConnection)
+			// Wrap UDP connection with synchronized writer to ensure serial writes
+			syncUDPWriter := &synchronizedUDPWriter{conn: udpConnection}
+			writer = io.MultiWriter(os.Stdout, syncUDPWriter)
 		}
 
 		slogger := slog.New(

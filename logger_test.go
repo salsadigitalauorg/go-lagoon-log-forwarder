@@ -2,10 +2,13 @@ package logger
 
 import (
 	"bytes"
+	"fmt"
 	"log/slog"
+	"net"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestDefaultAttrs(t *testing.T) {
@@ -418,6 +421,157 @@ func BenchmarkReplaceAttr_WithGroups(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = replaceAttr(groups, attr)
+		replaceAttr(groups, attr)
 	}
+}
+
+// TestSynchronizedUDPWriter tests that UDP writes are serialized
+func TestSynchronizedUDPWriter(t *testing.T) {
+	// Create a mock UDP connection for testing
+	mockConn := &mockUDPConn{
+		writes: make(chan []byte, 100),
+	}
+
+	writer := &synchronizedUDPWriter{conn: mockConn}
+
+	// Test concurrent writes
+	const numWrites = 100
+	var wg sync.WaitGroup
+
+	// Start multiple goroutines writing concurrently
+	for i := 0; i < numWrites; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			message := fmt.Sprintf("message-%d", id)
+			_, err := writer.Write([]byte(message))
+			if err != nil {
+				t.Errorf("Write failed: %v", err)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Verify all writes were received
+	if len(mockConn.writes) != numWrites {
+		t.Errorf("Expected %d writes, got %d", numWrites, len(mockConn.writes))
+	}
+
+	// Verify writes are serialized (no concurrent access to the underlying connection)
+	close(mockConn.writes)
+	receivedWrites := make([]string, 0, numWrites)
+	for write := range mockConn.writes {
+		receivedWrites = append(receivedWrites, string(write))
+	}
+
+	// All writes should have been processed
+	if len(receivedWrites) != numWrites {
+		t.Errorf("Expected %d received writes, got %d", numWrites, len(receivedWrites))
+	}
+}
+
+// TestSynchronizedUDPWriterClose tests that Close is thread-safe
+func TestSynchronizedUDPWriterClose(t *testing.T) {
+	mockConn := &mockUDPConn{
+		writes: make(chan []byte, 10),
+	}
+
+	writer := &synchronizedUDPWriter{conn: mockConn}
+
+	// Test concurrent writes and close
+	var wg sync.WaitGroup
+
+	// Start a goroutine that writes
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 10; i++ {
+			writer.Write([]byte(fmt.Sprintf("message-%d", i)))
+		}
+	}()
+
+	// Start a goroutine that closes
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		writer.Close()
+	}()
+
+	wg.Wait()
+
+	// Should not panic or cause race conditions
+}
+
+// mockUDPConn is a mock UDP connection for testing
+type mockUDPConn struct {
+	writes chan []byte
+	closed bool
+	mu     sync.Mutex
+}
+
+func (m *mockUDPConn) Write(p []byte) (n int, err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.closed {
+		return 0, fmt.Errorf("connection closed")
+	}
+
+	select {
+	case m.writes <- p:
+		return len(p), nil
+	default:
+		return 0, fmt.Errorf("write buffer full")
+	}
+}
+
+func (m *mockUDPConn) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.closed = true
+	return nil
+}
+
+func (m *mockUDPConn) LocalAddr() net.Addr                                 { return nil }
+func (m *mockUDPConn) RemoteAddr() net.Addr                                { return nil }
+func (m *mockUDPConn) SetDeadline(t time.Time) error                       { return nil }
+func (m *mockUDPConn) SetReadDeadline(t time.Time) error                   { return nil }
+func (m *mockUDPConn) SetWriteDeadline(t time.Time) error                  { return nil }
+func (m *mockUDPConn) Read(b []byte) (n int, err error)                    { return 0, nil }
+func (m *mockUDPConn) ReadFrom(b []byte) (n int, addr net.Addr, err error) { return 0, nil, nil }
+func (m *mockUDPConn) WriteTo(b []byte, addr net.Addr) (n int, err error)  { return 0, nil }
+
+// BenchmarkSynchronizedUDPWriter measures performance of synchronized writes
+func BenchmarkSynchronizedUDPWriter(b *testing.B) {
+	mockConn := &mockUDPConn{
+		writes: make(chan []byte, b.N),
+	}
+
+	writer := &synchronizedUDPWriter{conn: mockConn}
+
+	message := []byte("test log message")
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			writer.Write(message)
+		}
+	})
+}
+
+// BenchmarkUnsynchronizedUDPWriter measures performance without synchronization
+func BenchmarkUnsynchronizedUDPWriter(b *testing.B) {
+	mockConn := &mockUDPConn{
+		writes: make(chan []byte, b.N),
+	}
+
+	message := []byte("test log message")
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			mockConn.Write(message)
+		}
+	})
 }

@@ -15,6 +15,7 @@ A high-performance Go library for forwarding structured logs to UDP endpoints, d
 - **⚙️ Flexible Configuration**: Programmatic configuration (no global flags)
 - **🔧 ELK Stack Ready**: Built-in log formatting for Logstash/Elasticsearch
 - **🛡️ Production Ready**: Comprehensive error handling and graceful failures
+- **🔒 Thread Safe**: Serialized UDP writes ensure log integrity in concurrent environments
 - **🧪 Well Tested**: 100% test coverage with benchmarks
 - **📦 Zero Dependencies**: Uses only Go standard library
 
