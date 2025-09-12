@@ -84,8 +84,6 @@ func defaultAttrs() []any {
 		slog.Int("@version", messageVersion),
 		slog.String("application", applicationName),
 		slog.String("channel", logChannel),
-		slog.Group("context"),
-		slog.Group("extra"),
 		slog.String("host", hostname),
 		// NOTE: Refactoring will be required if we want to override this per project
 		slog.String("type", logType),
