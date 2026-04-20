@@ -177,8 +177,8 @@ func TestIntegration_RenovateBotScenario(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	defer tmpFile.Close()
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
+	defer func() { _ = tmpFile.Close() }()
 
 	// Setup configuration for renovatebot
 	cfg := NewConfig()
@@ -222,7 +222,7 @@ func BenchmarkDefaultHandler(b *testing.B) {
 	cfg.LogType = "bench"
 	cfg.HandlerType = HandlerTypeDefault
 
-	Initialize(cfg)
+	_ = Initialize(cfg)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -242,7 +242,7 @@ func BenchmarkNormalizingHandler(b *testing.B) {
 		`^extra\.logData\.hits$`,
 	}
 
-	Initialize(cfg)
+	_ = Initialize(cfg)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
