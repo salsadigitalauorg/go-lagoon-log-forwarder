@@ -5,6 +5,16 @@ import (
 	"log/slog"
 )
 
+// HandlerType defines the type of log handler to use
+type HandlerType string
+
+const (
+	// HandlerTypeDefault uses the standard JSON handler without normalization
+	HandlerTypeDefault HandlerType = "default"
+	// HandlerTypeNormalizing uses a handler that normalizes dynamic fields to prevent index explosion
+	HandlerTypeNormalizing HandlerType = "normalizing"
+)
+
 type Config struct {
 	AddSource       bool
 	ApplicationName string
@@ -13,18 +23,24 @@ type Config struct {
 	LogPort         int
 	LogType         string
 	MessageVersion  int
+	// HandlerType specifies which handler to use (default, normalizing)
+	HandlerType HandlerType
+	// NormalizationPatterns defines regex patterns for fields to normalize (only used with HandlerTypeNormalizing)
+	NormalizationPatterns []string
 }
 
 // NewConfig returns a Config struct with default values
 func NewConfig() Config {
 	return Config{
-		AddSource:       true,
-		ApplicationName: "",
-		LogChannel:      "LagoonLogs",
-		LogHost:         "", // Will default to localhost in validation
-		LogPort:         5140,
-		LogType:         "", // Required - must be set by user
-		MessageVersion:  1,
+		AddSource:             true,
+		ApplicationName:       "",
+		LogChannel:            "LagoonLogs",
+		LogHost:               "", // Will default to localhost in validation
+		LogPort:               5140,
+		LogType:               "", // Required - must be set by user
+		MessageVersion:        1,
+		HandlerType:           HandlerTypeDefault,
+		NormalizationPatterns: nil, // No patterns by default
 	}
 }
 
@@ -36,6 +52,8 @@ func config(cfg Config) error {
 	logPort = cfg.LogPort
 	logType = cfg.LogType
 	messageVersion = cfg.MessageVersion
+	handlerType = cfg.HandlerType
+	normalizationPatterns = cfg.NormalizationPatterns
 	return validate()
 }
 

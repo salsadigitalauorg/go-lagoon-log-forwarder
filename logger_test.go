@@ -38,7 +38,7 @@ func TestDefaultAttrs(t *testing.T) {
 	attrs := defaultAttrs()
 
 	// Verify the structure and types
-	expectedLength := 5 // @version, application, channel, host, type
+	expectedLength := 7 // @version, application, channel, context, extra, host, type
 	if len(attrs) != expectedLength {
 		t.Errorf("defaultAttrs() returned %d attributes, expected %d", len(attrs), expectedLength)
 	}

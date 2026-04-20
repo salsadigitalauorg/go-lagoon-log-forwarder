@@ -10,15 +10,17 @@ import (
 )
 
 var (
-	addSource       bool
-	applicationName string
-	hostname        string
-	logChannel      string
-	logHost         string
-	logPort         int
-	logType         string // should match namespace to create index 'application-logs-{logType}'
-	messageVersion  int
-	once            sync.Once
+	addSource             bool
+	applicationName       string
+	hostname              string
+	logChannel            string
+	logHost               string
+	logPort               int
+	logType               string // should match namespace to create index 'application-logs-{logType}'
+	messageVersion        int
+	handlerType           HandlerType
+	normalizationPatterns []string
+	once                  sync.Once
 )
 
 // synchronizedUDPWriter ensures UDP writes happen serially
@@ -47,6 +49,7 @@ func Initialize(cfg Config) error {
 	messageVersion = 3
 
 	if err := config(cfg); err != nil {
+		slog.Error("configuration error", slog.Any("err", err))
 		return fmt.Errorf("configuration error: %w", err)
 	}
 
@@ -62,15 +65,22 @@ func Initialize(cfg Config) error {
 			writer = io.MultiWriter(os.Stdout, syncUDPWriter)
 		}
 
-		slogger := slog.New(
-			slog.NewJSONHandler(
-				writer,
-				&slog.HandlerOptions{
-					AddSource:   addSource,
-					Level:       slog.LevelDebug,
-					ReplaceAttr: replaceAttr,
-				},
-			)).With(defaultAttrs()...)
+		baseHandler := slog.NewJSONHandler(
+			writer,
+			&slog.HandlerOptions{
+				AddSource:   addSource,
+				Level:       slog.LevelDebug,
+				ReplaceAttr: replaceAttr,
+			},
+		)
+
+		// Wrap with appropriate handler based on configuration
+		var handler slog.Handler = baseHandler
+		if handlerType == HandlerTypeNormalizing && len(normalizationPatterns) > 0 {
+			handler = NewNormalizingHandler(baseHandler, normalizationPatterns)
+		}
+
+		slogger := slog.New(handler).With(defaultAttrs()...)
 
 		slog.SetDefault(slogger)
 	})
@@ -84,6 +94,8 @@ func defaultAttrs() []any {
 		slog.Int("@version", messageVersion),
 		slog.String("application", applicationName),
 		slog.String("channel", logChannel),
+		slog.Group("context"),
+		slog.Group("extra"),
 		slog.String("host", hostname),
 		// NOTE: Refactoring will be required if we want to override this per project
 		slog.String("type", logType),
