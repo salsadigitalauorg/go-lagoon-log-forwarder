@@ -38,7 +38,7 @@ func TestDefaultAttrs(t *testing.T) {
 	attrs := defaultAttrs()
 
 	// Verify the structure and types
-	expectedLength := 5 // @version, application, channel, host, type
+	expectedLength := 7 // @version, application, channel, context, extra, host, type
 	if len(attrs) != expectedLength {
 		t.Errorf("defaultAttrs() returned %d attributes, expected %d", len(attrs), expectedLength)
 	}
@@ -487,7 +487,7 @@ func TestSynchronizedUDPWriterClose(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for i := 0; i < 10; i++ {
-			writer.Write([]byte(fmt.Sprintf("message-%d", i)))
+			_, _ = fmt.Fprintf(writer, "message-%d", i)
 		}
 	}()
 
@@ -495,7 +495,7 @@ func TestSynchronizedUDPWriterClose(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		writer.Close()
+		_ = writer.Close()
 	}()
 
 	wg.Wait()
@@ -555,7 +555,7 @@ func BenchmarkSynchronizedUDPWriter(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			writer.Write(message)
+			_, _ = writer.Write(message)
 		}
 	})
 }
@@ -571,7 +571,7 @@ func BenchmarkUnsynchronizedUDPWriter(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			mockConn.Write(message)
+			_, _ = mockConn.Write(message)
 		}
 	})
 }
